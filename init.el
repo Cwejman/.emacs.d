@@ -3,10 +3,9 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   '("d268b67e0935b9ebc427cad88ded41e875abfcc27abd409726a92e55459e0d01" default))
  '(package-selected-packages
-   '(tree-sitter-langs tree-sitter web-mode evil-nerd-commenter lsp-treemacs company-box company all-the-icons typescript-mode lsp-ivy lsp-ui lsp-mode doom-themes doom-modeline ivy-rich which-key rainbow-delimiters evil-magit magit counsel-projectile projectile evil-collection evil general use-package)))
+   '(evil-magit which-key web-mode use-package typescript-mode tree-sitter-langs rainbow-delimiters projectile prettier-js magit lsp-ui lsp-treemacs lsp-ivy json-mode ivy-rich general evil-nerd-commenter evil-collection doom-themes doom-modeline dired-single dired-open dired-hide-dotfiles counsel company-box all-the-icons-dired))
+ '(warning-suppress-types '((use-package))))
 
 
 ;;
@@ -14,8 +13,6 @@
 
 
 (setq inhibit-startup-message t)
-(setq mac-option-modifier 'meta)
-(setq mac-right-option-modifier nil)
 
 (scroll-bar-mode -1)        ; Disable visible scrollbar
 (tool-bar-mode -1)          ; Disable the toolbar
@@ -27,7 +24,11 @@
 (column-number-mode)
 (global-display-line-numbers-mode t)
 
-(set-face-attribute 'default nil :font "Menlo" :height 144)
+(setq mac-right-command-modifier 'super
+      mac-command-modifier 'meta
+      mac-option-modifier nil)
+
+(set-face-attribute 'default nil :font "Menlo" :height 124)
 
 ;; Disable line numbers for some modes
 (dolist (mode '(org-mode-hook
@@ -79,8 +80,11 @@
     :global-prefix "C-SPC")
 
   (jc/leader-keys
-    "t"  '(:ignore t :which-key "toggles")
-    "tt" '(counsel-load-theme :which-key "choose theme")))
+    "s"  '(counsel-switch-buffer :which-key "switch buffer")
+    "r"  '(counsel-recentf :which-key "recent files")
+    "f" '(toggle-frame-fullscreen :which-key "fullscreen")
+    "t" '(counsel-load-theme :which-key "choose theme")))
+    ;; "t"  '(:ignore t :which-key "toggles")
 
 (use-package counsel
   :bind (("M-x" . counsel-M-x)
@@ -121,6 +125,24 @@
 ;;
 
 
+(defun my/project-override (dir)
+  (let ((override (locate-dominating-file dir ".project.el")))
+    (if override
+      (cons 'vc override)
+      nil)))
+
+(use-package project
+  ;; Cannot use :hook because 'project-find-functions does not end in -hook
+  ;; Cannot use :init (must use :config) because otherwise
+  ;; project-find-functions is not yet initialized.
+  :config
+  (add-hook 'project-find-functions #'my/project-override))
+
+
+;;
+;;
+
+
 (use-package evil
   :init
   (setq evil-want-integration t)
@@ -147,6 +169,43 @@
 ;;
 ;;
 
+
+(use-package dired
+  :ensure nil
+  :commands (dired dired-jump)
+  :bind (("C-x C-j" . dired-jump))
+  :custom ((dired-listing-switches "-agho --group-directories-first"))
+  :config
+  (setq dired-dwim-target t)
+  (when (string= system-type "darwin")
+    (setq insert-directory-program "/usr/local/bin/gls"))
+  (evil-collection-define-key 'normal 'dired-mode-map
+    "h" 'dired-single-up-directory
+    "l" 'dired-single-buffer))
+
+(use-package dired-single)
+
+(use-package all-the-icons-dired
+  :hook (dired-mode . all-the-icons-dired-mode))
+
+(use-package dired-open
+  :config
+  ;; Doesn't work as expected!
+  ;;(add-to-list 'dired-open-functions #'dired-open-xdg t)
+  (setq dired-open-extensions '(("png" . "feh")
+                                ("mkv" . "mpv"))))
+
+(use-package dired-hide-dotfiles
+  :hook (dired-mode . dired-hide-dotfiles-mode)
+  :config
+  (evil-collection-define-key 'normal 'dired-mode-map
+    "H" 'dired-hide-dotfiles-mode))
+
+
+;;
+;;
+
+
 (use-package magit
   :custom
   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
@@ -157,6 +216,20 @@
 ;;
 ;;
 
+
+(setq web-mode-markup-indent-offset 2)
+(setq web-mode-code-indent-offset 2)
+(setq web-mode-css-indent-offset 2)
+(setq-default indent-tabs-mode nil)
+
+(use-package web-mode
+  :ensure t
+  :hook (web-mode . lsp)
+  :mode (("\\.js\\'" . web-mode)
+	 ("\\.jsx\\'" .  web-mode)
+	 ("\\.ts\\'" . web-mode)
+	 ("\\.tsx\\'" . web-mode)
+	 ("\\.html\\'" . web-mode)))
 
 (defun efs/lsp-mode-setup ()
   (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
@@ -169,6 +242,7 @@
 
 (use-package lsp-mode
   :commands (lsp lsp-deferred)
+  :init
   :hook (lsp-mode . efs/lsp-mode-setup)
   :config
   (lsp-enable-which-key-integration t)
@@ -189,32 +263,35 @@
 
 (use-package lsp-ivy)
 
-(use-package typescript-mode
-  ;; :mode "\\.ts\\'" "\\.tsx\\'"
-  :ensure t
-  :hook (typescript-mode . lsp)
-  :init
-  (define-derived-mode typescript-tsx-mode typescript-mode "tsx")
-  :config
-  (setq typescript-indent-level 2)
-  (add-hook 'typescript-mode #'subword-mode)
-  (add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-tsx-mode)))
+;; (use-package typescript-mode
+;;   :mode "\\.ts\\'" "\\.tsx\\'"
+;;   :ensure t
+;;   :hook (typescript-mode . lsp)
+;;   :init
+;;   (define-derived-mode typescript-tsx-mode typescript-mode "tsx")
+;;   :config
+;;   (setq typescript-indent-level 2)
+;;   ;; (add-hook 'typescript-mode #'subword-mode)
+;;   ;; (add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-tsx-mode))
+;;   )
 
-(use-package tree-sitter
-  :ensure t
-  :hook ((typescript-mode . tree-sitter-hl-mode)
-	 (typescript-tsx-mode . tree-sitter-hl-mode)))
+;; (use-package tree-sitter
+;;   :ensure t
+;;   :hook ((typescript-mode . tree-sitter-hl-mode)
+;; 	 (typescript-tsx-mode . tree-sitter-hl-mode)))
 
-(use-package tree-sitter-langs
-  :ensure t
-  :after tree-sitter
-  :config
-  (tree-sitter-require 'tsx)
-  (add-to-list 'tree-sitter-major-mode-language-alist '(typescript-tsx-mode . tsx)))
+;; (use-package tree-sitter-langs
+;;   :ensure t
+;;   :after tree-sitter
+;;   :config
+;;   (tree-sitter-require 'tsx)
+;;   (add-to-list 'tree-sitter-major-mode-language-alist '(typescript-tsx-mode . tsx)))
 
 (use-package company
   :after lsp-mode
-  :hook (lsp-mode . company-mode)
+  :hook
+  (lsp-mode . company-mode)
+  (emacs-lisp-mode . company-mode)
   :bind (:map company-active-map
     ("<tab>" . company-complete-selection))
     (:map lsp-mode-map
@@ -228,18 +305,7 @@
 
 (use-package prettier-js
   :ensure t
-  :hook (typescript-mode . prettier-js-mode))
-
-;; (setq web-mode-markup-indent-offset 2)
-;; (setq web-mode-code-indent-offset 2)
-;; (setq web-mode-css-indent-offset 2)
-;; (use-package web-mode
-;;   :ensure t
-;;   :mode (("\\.js\\'" . web-mode)
-;; 	 ("\\.jsx\\'" .  web-mode)
-;; 	 ("\\.ts\\'" . web-mode)
-;; 	 ("\\.tsx\\'" . web-mode)
-;; 	 ("\\.html\\'" . web-mode)))
+  :hook (web-mode . prettier-js-mode))
 
 
 ;;
@@ -248,6 +314,21 @@
 (use-package json-mode
   :ensure t)
 
+(use-package treemacs
+  :ensure t
+  :defer t
+  :bind
+  (:map global-map
+        ("M-0" . treemacs-select-window))
+  :config
+  (treemacs-resize-icons 16))
+
+(use-package ace-window
+  :ensure t
+  :config
+  (setq aw-dispatch-always t)
+  :bind (("M-o" . ace-window)
+         ("M-O" . ace-swap-window)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
