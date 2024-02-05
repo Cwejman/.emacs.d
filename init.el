@@ -4,7 +4,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(yaml-mode evil-magit which-key web-mode use-package typescript-mode tree-sitter-langs rainbow-delimiters projectile prettier-js magit lsp-ui lsp-treemacs lsp-ivy json-mode ivy-rich general evil-nerd-commenter evil-collection doom-themes doom-modeline dired-single dired-open dired-hide-dotfiles counsel company-box all-the-icons-dired))
+   '(centered-cursor-mode flycheck-ledger ledger-mode company lsp-mode evil evil-magit which-key web-mode use-package typescript-mode tree-sitter-langs rainbow-delimiters projectile prettier-js magit lsp-ui lsp-treemacs lsp-ivy json-mode ivy-rich general evil-nerd-commenter evil-collection doom-themes doom-modeline dired-single dired-open dired-hide-dotfiles counsel company-box all-the-icons-dired))
  '(warning-suppress-types '((use-package))))
 
 ;;
@@ -36,6 +36,10 @@
                 term-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
+(when (string= system-type "darwin")
+  (setq dired-use-ls-dired t
+        insert-directory-program "/usr/local/opt/coreutils/libexec/gnubin/ls"
+        dired-listing-switches "-aBhl --group-directories-first"))
 
 ;;
 ;; Initialize package sources
@@ -328,6 +332,22 @@
   (setq aw-dispatch-always t)
   :bind (("M-o" . ace-window)
          ("M-O" . ace-swap-window)))
+
+;;
+;;
+
+(use-package ledger-mode
+    :mode ("\\.dat\\'"
+           "\\.ledger\\'"))
+       
+(use-package flycheck-ledger :after ledger-mode)
+
+(use-package company-ledger
+  :ensure company
+  :init
+  (with-eval-after-load 'company
+    (add-to-list 'company-backends 'company-ledger)))
+
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
