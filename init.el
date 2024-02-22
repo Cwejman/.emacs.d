@@ -4,14 +4,14 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(evil-magit which-key web-mode use-package typescript-mode tree-sitter-langs rainbow-delimiters projectile prettier-js magit lsp-ui lsp-treemacs lsp-ivy json-mode ivy-rich general evil-nerd-commenter evil-collection doom-themes doom-modeline dired-single dired-open dired-hide-dotfiles counsel company-box all-the-icons-dired))
+   '(yaml-mode evil-magit which-key web-mode use-package typescript-mode tree-sitter-langs rainbow-delimiters projectile prettier-js magit lsp-ui lsp-treemacs lsp-ivy json-mode ivy-rich general evil-nerd-commenter evil-collection doom-themes doom-modeline dired-single dired-open dired-hide-dotfiles counsel company-box all-the-icons-dired))
  '(warning-suppress-types '((use-package))))
 
-
 ;;
 ;;
 
 
+(setq make-backup-files nil)
 (setq inhibit-startup-message t)
 
 (scroll-bar-mode -1)        ; Disable visible scrollbar
@@ -59,7 +59,6 @@
 
 ;;
 ;;
-
 
 (use-package doom-themes
   :init (load-theme 'doom-one t))
@@ -335,3 +334,11 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+
+;;
+;;
+
+
+(use-package yaml-mode
+  :ensure t
+  :mode ("\\.yml\\'" "\\.yaml\\'"))
